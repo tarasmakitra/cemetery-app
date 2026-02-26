@@ -1,0 +1,451 @@
+{
+  "info": {
+    "name": "Cemetery API",
+    "description": "Stojaniv Cemetery REST API collection.\n\nBase URL: {{baseUrl}}/api\n\nAll endpoints require Bearer token authentication.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{apiToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8002",
+      "type": "string"
+    },
+    {
+      "key": "apiToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "graveId",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Graves",
+      "item": [
+        {
+          "name": "List graves",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cemetery/graves?page=1&size=10&search=&status=&orderBy=id&orderDirection=asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cemetery", "graves"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (1-based)"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Items per page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search in location and notes (case-sensitive substring match)"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filter by status: VISIBLE or HIDDEN. Empty = all"
+                },
+                {
+                  "key": "orderBy",
+                  "value": "id",
+                  "description": "Column to sort by (any Grave field)"
+                },
+                {
+                  "key": "orderDirection",
+                  "value": "asc",
+                  "description": "asc or desc"
+                }
+              ]
+            },
+            "description": "List graves with pagination, search, and filtering.\n\nResponse:\n```json\n{\n  \"status\": \"ok\",\n  \"data\": {\n    \"data\": [Grave, ...],\n    \"total\": 42\n  }\n}\n```"
+          },
+          "response": []
+        },
+        {
+          "name": "List graves (VISIBLE only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cemetery/graves?page=1&size=10&status=VISIBLE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cemetery", "graves"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "VISIBLE"
+                }
+              ]
+            },
+            "description": "List only visible graves."
+          },
+          "response": []
+        },
+        {
+          "name": "Search graves",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cemetery/graves?search=A8&page=1&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cemetery", "graves"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "A8"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Search graves by location or notes."
+          },
+          "response": []
+        },
+        {
+          "name": "Get grave by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cemetery/graves/{{graveId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cemetery", "graves", "{{graveId}}"]
+            },
+            "description": "Get a single grave by ID.\n\nReturns 404 if not found:\n```json\n{ \"status\": \"error\", \"message\": \"Запис не знайдено.\" }\n```"
+          },
+          "response": []
+        },
+        {
+          "name": "Create grave",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uid\": \"my-custom-uid\",\n  \"status\": \"VISIBLE\",\n  \"type\": \"REGULAR\",\n  \"location\": \"A8\",\n  \"rotation\": 0,\n  \"latitude\": 50.371,\n  \"longitude\": 24.628,\n  \"notes\": null,\n  \"persons\": [\n    {\n      \"name\": \"Іван Петрович\",\n      \"birthDay\": \"\",\n      \"birthMonth\": \"\",\n      \"birthYear\": \"1920\",\n      \"deathDay\": \"\",\n      \"deathMonth\": \"\",\n      \"deathYear\": \"1990\",\n      \"notes\": \"\"\n    }\n  ],\n  \"images\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cemetery/graves",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cemetery", "graves"]
+            },
+            "description": "Create a new grave.\n\nThe uid field is optional — if omitted, a UUID is auto-generated. Once created, uid is readonly and ignored on updates.\n\nReturns 201 on success."
+          },
+          "response": []
+        },
+        {
+          "name": "Create grave (minimal)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"REGULAR\",\n  \"latitude\": 50.371,\n  \"longitude\": 24.628,\n  \"persons\": [\n    {\n      \"name\": \"Іван Петрович\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cemetery/graves",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cemetery", "graves"]
+            },
+            "description": "Create a new grave with minimal required fields."
+          },
+          "response": []
+        },
+        {
+          "name": "Create grave (with images)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"REGULAR\",\n  \"location\": \"B12\",\n  \"latitude\": 50.371,\n  \"longitude\": 24.628,\n  \"persons\": [\n    {\n      \"name\": \"Марія Іванівна\",\n      \"birthYear\": \"1935\",\n      \"deathYear\": \"2005\"\n    }\n  ],\n  \"images\": [\n    { \"id\": 1 }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cemetery/graves",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cemetery", "graves"]
+            },
+            "description": "Create a new grave with image references. Upload images first via POST /api/image to get image IDs."
+          },
+          "response": []
+        },
+        {
+          "name": "Update grave",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"VISIBLE\",\n  \"type\": \"REGULAR\",\n  \"location\": \"A8\",\n  \"rotation\": 0,\n  \"latitude\": 50.371,\n  \"longitude\": 24.628,\n  \"notes\": \"Updated notes\",\n  \"persons\": [\n    {\n      \"name\": \"Іван Петрович\",\n      \"birthDay\": \"\",\n      \"birthMonth\": \"\",\n      \"birthYear\": \"1920\",\n      \"deathDay\": \"\",\n      \"deathMonth\": \"\",\n      \"deathYear\": \"1990\",\n      \"notes\": \"\"\n    },\n    {\n      \"name\": \"Марія Іванівна\",\n      \"birthDay\": \"15\",\n      \"birthMonth\": \"03\",\n      \"birthYear\": \"1925\",\n      \"deathDay\": \"22\",\n      \"deathMonth\": \"11\",\n      \"deathYear\": \"1995\",\n      \"notes\": \"\"\n    }\n  ],\n  \"images\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cemetery/graves/{{graveId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cemetery", "graves", "{{graveId}}"]
+            },
+            "description": "Update a grave. Replaces ALL persons and images.\n\nIMPORTANT: Persons and images arrays are fully replaced. To keep existing persons, include them all in the request. Omitting persons or images defaults to [], which deletes all existing ones."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete grave",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cemetery/graves/{{graveId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cemetery", "graves", "{{graveId}}"]
+            },
+            "description": "Delete a grave and all its persons and images (cascade).\n\nReturns 404 if not found."
+          },
+          "response": []
+        },
+        {
+          "name": "Get map graves",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cemetery/graves/map",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cemetery", "graves", "map"]
+            },
+            "description": "Get all graves that have coordinates (latitude and longitude are not null). No pagination — returns all matching records."
+          },
+          "response": []
+        }
+      ],
+      "description": "CRUD operations for cemetery grave records."
+    },
+    {
+      "name": "Sync",
+      "item": [
+        {
+          "name": "Batch sync operations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"operations\": [\n    {\n      \"action\": \"create\",\n      \"tempId\": \"client-uuid-1\",\n      \"data\": {\n        \"uid\": \"custom-uid-1\",\n        \"type\": \"REGULAR\",\n        \"latitude\": 50.371,\n        \"longitude\": 24.628,\n        \"persons\": [\n          { \"name\": \"Іван Петрович\" }\n        ]\n      }\n    },\n    {\n      \"action\": \"update\",\n      \"id\": 42,\n      \"data\": {\n        \"location\": \"C5\",\n        \"notes\": \"Updated via sync\",\n        \"persons\": [\n          {\n            \"name\": \"Іван Петрович\",\n            \"birthYear\": \"1920\",\n            \"deathYear\": \"1990\"\n          }\n        ]\n      }\n    },\n    {\n      \"action\": \"delete\",\n      \"id\": 37\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cemetery/sync",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cemetery", "sync"]
+            },
+            "description": "Batch sync operations for offline-first workflow. Operations run sequentially. Each operation is independently wrapped in try/catch — one failure does not block the rest.\n\nActions: create (requires tempId + data), update (requires id + data), delete (requires id)."
+          },
+          "response": []
+        },
+        {
+          "name": "Sync - create only",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"operations\": [\n    {\n      \"action\": \"create\",\n      \"tempId\": \"temp-001\",\n      \"data\": {\n        \"uid\": \"grave-d10\",\n        \"type\": \"REGULAR\",\n        \"location\": \"D10\",\n        \"latitude\": 50.372,\n        \"longitude\": 24.629,\n        \"persons\": [\n          { \"name\": \"Петро Іванович\", \"birthYear\": \"1900\", \"deathYear\": \"1975\" }\n        ]\n      }\n    },\n    {\n      \"action\": \"create\",\n      \"tempId\": \"temp-002\",\n      \"data\": {\n        \"type\": \"SMALL\",\n        \"latitude\": 50.373,\n        \"longitude\": 24.630,\n        \"persons\": [\n          { \"name\": \"Ганна Степанівна\" }\n        ]\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cemetery/sync",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cemetery", "sync"]
+            },
+            "description": "Batch create multiple graves via sync endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Sync - delete only",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"operations\": [\n    {\n      \"action\": \"delete\",\n      \"id\": 1\n    },\n    {\n      \"action\": \"delete\",\n      \"id\": 2\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cemetery/sync",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cemetery", "sync"]
+            },
+            "description": "Batch delete multiple graves via sync endpoint."
+          },
+          "response": []
+        }
+      ],
+      "description": "Batch sync endpoint for offline-first workflow."
+    },
+    {
+      "name": "Images",
+      "item": [
+        {
+          "name": "Upload image",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Image file (JPEG, PNG, WebP, etc.)"
+                },
+                {
+                  "key": "type",
+                  "value": "grave",
+                  "type": "text",
+                  "description": "Image type/category hint (optional)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/image",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "image"]
+            },
+            "description": "Upload an image file. Returns the created Image record with id to use in grave images array.\n\nRequires upload:images permission.\n\nResponse includes: id, source, thumbSource, width, height."
+          },
+          "response": []
+        }
+      ],
+      "description": "Image upload endpoint. Upload images first, then reference their IDs when creating/updating graves."
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-save graveId from create responses",
+          "if (pm.response.code === 201 || pm.response.code === 200) {",
+          "    try {",
+          "        var jsonData = pm.response.json();",
+          "        if (jsonData.status === 'ok' && jsonData.data && jsonData.data.id) {",
+          "            pm.collectionVariables.set('graveId', jsonData.data.id);",
+          "        }",
+          "    } catch (e) {}",
+          "}"
+        ]
+      }
+    }
+  ]
+}
