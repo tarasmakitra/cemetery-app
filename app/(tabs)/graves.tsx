@@ -61,6 +61,11 @@ export default function GravesListScreen() {
         <Text style={styles.rowCoords}>
           {item.latitude.toFixed(5)}, {item.longitude.toFixed(5)}
         </Text>
+        {item.photo_count > 0 && (
+          <Text style={styles.rowPhotos}>
+            {item.photo_count} фото
+          </Text>
+        )}
       </View>
       <SyncStatusBadge status={item.sync_status} />
     </TouchableOpacity>
@@ -152,6 +157,11 @@ const styles = StyleSheet.create({
   rowCoords: {
     fontSize: 11,
     color: '#999',
+    marginTop: 2,
+  },
+  rowPhotos: {
+    fontSize: 11,
+    color: '#666',
     marginTop: 2,
   },
   emptyText: {

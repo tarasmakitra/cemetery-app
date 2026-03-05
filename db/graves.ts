@@ -6,7 +6,8 @@ export async function getAllGraves(db: SQLiteDatabase): Promise<GraveListItem[]>
   return db.getAllAsync<GraveListItem>(
     `SELECT g.*,
        COALESCE(GROUP_CONCAT(CASE WHEN p.name != '' THEN p.name END, ', '), '') as persons_summary,
-       (SELECT i.file_uri FROM local_grave_images i WHERE i.grave_local_id = g.local_id ORDER BY i.created_at LIMIT 1) as first_photo_uri
+       (SELECT i.file_uri FROM local_grave_images i WHERE i.grave_local_id = g.local_id ORDER BY i.created_at LIMIT 1) as first_photo_uri,
+       (SELECT COUNT(*) FROM local_grave_images i WHERE i.grave_local_id = g.local_id) as photo_count
      FROM local_graves g
      LEFT JOIN local_grave_persons p ON p.grave_local_id = g.local_id
      WHERE g.sync_status != 'deleted'
@@ -106,7 +107,8 @@ export async function searchGraves(db: SQLiteDatabase, query: string): Promise<G
   return db.getAllAsync<GraveListItem>(
     `SELECT g.*,
        COALESCE(GROUP_CONCAT(CASE WHEN p.name != '' THEN p.name END, ', '), '') as persons_summary,
-       (SELECT i.file_uri FROM local_grave_images i WHERE i.grave_local_id = g.local_id ORDER BY i.created_at LIMIT 1) as first_photo_uri
+       (SELECT i.file_uri FROM local_grave_images i WHERE i.grave_local_id = g.local_id ORDER BY i.created_at LIMIT 1) as first_photo_uri,
+       (SELECT COUNT(*) FROM local_grave_images i WHERE i.grave_local_id = g.local_id) as photo_count
      FROM local_graves g
      LEFT JOIN local_grave_persons p ON p.grave_local_id = g.local_id
      WHERE g.sync_status != 'deleted'

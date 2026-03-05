@@ -23,6 +23,7 @@ export interface LocalGrave {
 export interface GraveListItem extends LocalGrave {
   persons_summary: string;
   first_photo_uri: string | null;
+  photo_count: number;
 }
 
 export interface LocalGravePerson {

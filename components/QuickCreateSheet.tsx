@@ -107,7 +107,7 @@ export function QuickCreateSheet({
   const db = useSQLiteContext();
   const snapPoints = useMemo(() => ['60%', '85%'], []);
 
-  const [persons, setPersons] = useState<PersonEntry[]>([emptyPerson()]);
+  const [persons, setPersons] = useState<PersonEntry[]>([]);
   const [notes, setNotes] = useState('');
   const [pickedPhotos, setPickedPhotos] = useState<{ uri: string; fromCamera: boolean }[]>([]);
   const [showNudge, setShowNudge] = useState(false);
@@ -120,7 +120,7 @@ export function QuickCreateSheet({
   );
 
   const resetForm = useCallback(() => {
-    setPersons([emptyPerson()]);
+    setPersons([]);
     setNotes('');
     setPickedPhotos([]);
     onDismiss();
@@ -309,11 +309,9 @@ export function QuickCreateSheet({
           <View key={index} style={styles.personCard}>
             <View style={styles.personHeader}>
               <Text style={styles.personIndex}>Особа {index + 1}</Text>
-              {persons.length > 1 && (
-                <TouchableOpacity onPress={() => removePerson(index)}>
-                  <MaterialIcons name="close" size={20} color={AppColors.danger} />
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity onPress={() => removePerson(index)}>
+                <MaterialIcons name="close" size={20} color={AppColors.danger} />
+              </TouchableOpacity>
             </View>
             <BottomSheetTextInput
               style={styles.input}
