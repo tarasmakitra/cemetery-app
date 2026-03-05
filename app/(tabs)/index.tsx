@@ -11,6 +11,7 @@ import { GravePolygonComponent } from '@/components/GravePolygon';
 import { QuickCreateSheet } from '@/components/QuickCreateSheet';
 import { GraveDetailSheet } from '@/components/GraveDetailSheet';
 import { FAB } from '@/components/FAB';
+import { SyncStatusOverlay } from '@/components/SyncStatusOverlay';
 import { computeGravePolygon, isCircleType } from '@/utils/polygon';
 import { snapToGrid } from '@/utils/snap';
 import { AppColors, DEFAULT_ROTATION } from '@/constants/theme';
@@ -165,6 +166,8 @@ export default function MapScreen() {
         onPress={handleGoToMyLocation}
         style={styles.locationFab}
       />
+
+      <SyncStatusOverlay />
 
       <QuickCreateSheet
         bottomSheetRef={quickCreateRef}

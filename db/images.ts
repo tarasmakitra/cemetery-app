@@ -58,4 +58,12 @@ export async function markImageUploaded(db: SQLiteDatabase, localId: string, ser
     `UPDATE local_grave_images SET upload_status = 'uploaded', server_id = ? WHERE local_id = ?`,
     [serverId, localId]
   );
+
+  // Mark the parent grave as modified so it gets re-synced with the new image server_id
+  await db.runAsync(
+    `UPDATE local_graves SET sync_status = 'modified', updated_at = datetime('now')
+     WHERE local_id = (SELECT grave_local_id FROM local_grave_images WHERE local_id = ?)
+       AND sync_status = 'synced'`,
+    [localId]
+  );
 }

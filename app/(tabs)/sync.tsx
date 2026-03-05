@@ -1,22 +1,28 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSQLiteContext } from 'expo-sqlite';
 
 import { Directory } from 'expo-file-system';
 
-import { getPendingGraves } from '@/db/graves';
-import { getPendingImages } from '@/db/images';
 import { syncAll, pullFromServer, type SyncProgress } from '@/services/sync';
 import { AppColors } from '@/constants/theme';
 import { STORAGE_KEYS } from '@/constants/storage';
+import { useSyncContext } from '@/contexts/SyncContext';
 import type { ImageProcessingMode, LocalGrave, LocalGravePerson } from '@/db/types';
 
 export default function SyncScreen() {
   const db = useSQLiteContext();
-  const [pendingGraves, setPendingGraves] = useState(0);
-  const [pendingImages, setPendingImages] = useState(0);
+  const {
+    backgroundSyncEnabled,
+    setBackgroundSyncEnabled,
+    isRunning: bgSyncRunning,
+    activity: bgActivity,
+    pendingGraves,
+    pendingImages,
+    refreshCounts,
+  } = useSyncContext();
   const [serverUrl, setServerUrl] = useState('');
   const [authToken, setAuthToken] = useState('');
   const [lastSync, setLastSync] = useState<string | null>(null);
@@ -29,11 +35,7 @@ export default function SyncScreen() {
   const [exporting, setExporting] = useState(false);
 
   const loadStats = useCallback(async () => {
-    const graves = await getPendingGraves(db);
-    setPendingGraves(graves.length);
-
-    const images = await getPendingImages(db);
-    setPendingImages(images.length);
+    await refreshCounts();
 
     const allGraves = await db.getFirstAsync<{ count: number }>(
       'SELECT COUNT(*) as count FROM local_graves'
@@ -50,7 +52,7 @@ export default function SyncScreen() {
     if (url) setServerUrl(url);
     if (token) setAuthToken(token);
     setLastSync(sync);
-  }, [db]);
+  }, [db, refreshCounts]);
 
   useFocusEffect(
     useCallback(() => {
@@ -80,6 +82,7 @@ export default function SyncScreen() {
       await syncAll(db, serverUrl, authToken, setSyncProgress);
       await AsyncStorage.setItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
       await loadStats();
+      await refreshCounts();
       Alert.alert('Успіх', 'Синхронізацію завершено');
     } catch (err) {
       Alert.alert('Помилка', `Синхронізація не вдалася: ${err}`);
@@ -87,7 +90,7 @@ export default function SyncScreen() {
       setSyncing(false);
       setSyncProgress(null);
     }
-  }, [db, serverUrl, authToken, loadStats]);
+  }, [db, serverUrl, authToken, loadStats, refreshCounts]);
 
   const handlePull = useCallback(async () => {
     if (!serverUrl.trim()) {
@@ -101,6 +104,7 @@ export default function SyncScreen() {
         setPullProgress(`${fetched} / ${total}`);
       });
       await loadStats();
+      await refreshCounts();
       Alert.alert(
         'Успіх',
         `Завантажено з сервера:\nНових: ${result.created}\nОновлено: ${result.updated}\nПропущено (є локальні зміни): ${result.skipped}`
@@ -111,7 +115,7 @@ export default function SyncScreen() {
       setPulling(false);
       setPullProgress('');
     }
-  }, [db, serverUrl, authToken, loadStats]);
+  }, [db, serverUrl, authToken, loadStats, refreshCounts]);
 
   const handleExportJson = useCallback(async () => {
     setExporting(true);
@@ -232,16 +236,38 @@ export default function SyncScreen() {
             </Text>
           </View>
         )}
+        <View style={[styles.statRow, { marginTop: 10, alignItems: 'center' }]}>
+          <Text style={styles.statLabel}>Фонова синхронізація</Text>
+          <Switch
+            value={backgroundSyncEnabled}
+            onValueChange={setBackgroundSyncEnabled}
+            trackColor={{ true: AppColors.fab.background }}
+          />
+        </View>
+        {bgSyncRunning && (
+          <View style={styles.bgStatusRow}>
+            <ActivityIndicator size="small" color={AppColors.fab.background} />
+            <Text style={styles.bgStatusText}>
+              {bgActivity === 'syncing_graves'
+                ? 'Синхронізація записів...'
+                : typeof bgActivity === 'object' && 'uploading' in bgActivity
+                  ? `Фото ${bgActivity.uploading}/${bgActivity.total}`
+                  : bgActivity === 'error'
+                    ? 'Помилка синхронізації'
+                    : 'Очікування...'}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Sync button */}
       <TouchableOpacity
-        style={[styles.syncBtn, syncing && styles.syncBtnDisabled]}
+        style={[styles.syncBtn, (syncing || bgSyncRunning) && styles.syncBtnDisabled]}
         onPress={handleSync}
-        disabled={syncing}
+        disabled={syncing || bgSyncRunning}
       >
         <Text style={styles.syncBtnText}>
-          {syncing ? 'Синхронізація...' : 'Синхронізувати зараз'}
+          {syncing ? 'Синхронізація...' : bgSyncRunning ? 'Фонова синхронізація активна' : 'Синхронізувати зараз'}
         </Text>
       </TouchableOpacity>
 
@@ -273,9 +299,9 @@ export default function SyncScreen() {
 
       {/* Pull from server */}
       <TouchableOpacity
-        style={[styles.pullBtn, pulling && styles.syncBtnDisabled]}
+        style={[styles.pullBtn, (pulling || bgSyncRunning) && styles.syncBtnDisabled]}
         onPress={handlePull}
-        disabled={pulling}
+        disabled={pulling || bgSyncRunning}
       >
         <Text style={styles.syncBtnText}>
           {pulling
@@ -518,5 +544,18 @@ const styles = StyleSheet.create({
     height: 6,
     backgroundColor: AppColors.fab.background,
     borderRadius: 3,
+  },
+  bgStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  bgStatusText: {
+    fontSize: 13,
+    color: '#555',
   },
 });

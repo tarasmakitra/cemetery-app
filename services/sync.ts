@@ -86,6 +86,7 @@ interface ServerGrave {
   latitude: number | null;
   longitude: number | null;
   notes: string | null;
+  createdAt: string;
   persons: ServerPerson[];
   images: ServerGraveImage[];
 }
@@ -144,29 +145,27 @@ export interface SyncProgress {
   gravesTotal: number;
 }
 
-export async function syncAll(
+export async function uploadSingleImage(
+  db: SQLiteDatabase,
+  image: LocalGraveImage,
+  serverUrl: string,
+  authToken: string
+): Promise<boolean> {
+  try {
+    const result = await uploadFile(serverUrl, image.file_uri, authToken);
+    await markImageUploaded(db, image.local_id, result.id);
+    return true;
+  } catch (err) {
+    console.warn('Image upload failed:', image.local_id, err);
+    return false;
+  }
+}
+
+export async function syncGraveBatch(
   db: SQLiteDatabase,
   serverUrl: string,
-  authToken: string,
-  onProgress?: (progress: SyncProgress) => void
-): Promise<void> {
-  // 1. Upload pending images
-  const pendingImages = await getPendingImages(db);
-  const pendingGravesPrecount = (await getPendingGraves(db)).length;
-
-  for (let i = 0; i < pendingImages.length; i++) {
-    onProgress?.({ phase: 'images', imagesCurrent: i + 1, imagesTotal: pendingImages.length, gravesTotal: pendingGravesPrecount });
-    const image = pendingImages[i];
-    try {
-      const result = await uploadFile(serverUrl, image.file_uri, authToken);
-      await markImageUploaded(db, image.local_id, result.id);
-    } catch (err) {
-      console.warn('Image upload failed:', image.local_id, err);
-    }
-  }
-
-  // 2. Build batch sync operations
-  onProgress?.({ phase: 'graves', imagesCurrent: pendingImages.length, imagesTotal: pendingImages.length, gravesTotal: pendingGravesPrecount });
+  authToken: string
+): Promise<{ synced: number; failed: number }> {
   const pendingGraves = await getPendingGraves(db);
   const operations: SyncOperation[] = [];
 
@@ -194,21 +193,25 @@ export async function syncAll(
     }
   }
 
-  if (operations.length === 0) return;
+  if (operations.length === 0) return { synced: 0, failed: 0 };
 
-  // 3. Send batch sync request
   const response = await apiRequest<SyncResponse>(serverUrl, '/api/cemetery/sync', {
     method: 'POST',
     token: authToken,
     body: { operations },
   });
 
-  // 4. Process results — update local DB
+  let synced = 0;
+  let failed = 0;
+
   for (const result of response.results) {
     if (result.status !== 'ok') {
       console.warn('Sync operation failed:', result);
+      failed++;
       continue;
     }
+
+    synced++;
 
     if (result.action === 'create' && result.tempId && result.serverId) {
       await db.runAsync(
@@ -230,6 +233,28 @@ export async function syncAll(
       }
     }
   }
+
+  return { synced, failed };
+}
+
+export async function syncAll(
+  db: SQLiteDatabase,
+  serverUrl: string,
+  authToken: string,
+  onProgress?: (progress: SyncProgress) => void
+): Promise<void> {
+  // 1. Upload pending images
+  const pendingImages = await getPendingImages(db);
+  const pendingGravesPrecount = (await getPendingGraves(db)).length;
+
+  for (let i = 0; i < pendingImages.length; i++) {
+    onProgress?.({ phase: 'images', imagesCurrent: i + 1, imagesTotal: pendingImages.length, gravesTotal: pendingGravesPrecount });
+    await uploadSingleImage(db, pendingImages[i], serverUrl, authToken);
+  }
+
+  // 2. Sync graves batch
+  onProgress?.({ phase: 'graves', imagesCurrent: pendingImages.length, imagesTotal: pendingImages.length, gravesTotal: pendingGravesPrecount });
+  await syncGraveBatch(db, serverUrl, authToken);
 
   onProgress?.({ phase: 'done', imagesCurrent: pendingImages.length, imagesTotal: pendingImages.length, gravesTotal: 0 });
 }
@@ -283,7 +308,7 @@ export async function pullFromServer(
       // Update existing synced grave
       await db.runAsync(
         `UPDATE local_graves SET uid = ?, location = ?, latitude = ?, longitude = ?, rotation = ?,
-         type = ?, status = ?, notes = ?, updated_at = datetime('now')
+         type = ?, status = ?, notes = ?, created_at = datetime(?), updated_at = datetime('now')
          WHERE local_id = ?`,
         [
           serverGrave.uid ?? '',
@@ -294,6 +319,7 @@ export async function pullFromServer(
           serverGrave.type,
           serverGrave.status,
           serverGrave.notes ?? '',
+          serverGrave.createdAt,
           existing.local_id,
         ]
       );
@@ -329,8 +355,8 @@ export async function pullFromServer(
       const localId = generateUUID();
 
       await db.runAsync(
-        `INSERT INTO local_graves (local_id, server_id, uid, location, latitude, longitude, rotation, type, status, notes, sync_status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced')`,
+        `INSERT INTO local_graves (local_id, server_id, uid, location, latitude, longitude, rotation, type, status, notes, sync_status, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', datetime(?))`,
         [
           localId,
           serverGrave.id,
@@ -342,6 +368,7 @@ export async function pullFromServer(
           serverGrave.type,
           serverGrave.status,
           serverGrave.notes ?? '',
+          serverGrave.createdAt,
         ]
       );
 

@@ -8,6 +8,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { migrateDb } from '@/db/database';
+import { SyncProvider } from '@/contexts/SyncContext';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -19,6 +20,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SQLiteProvider databaseName="cemetery.db" onInit={migrateDb}>
+        <SyncProvider>
         <BottomSheetModalProvider>
           <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
             <Stack>
@@ -34,6 +36,7 @@ export default function RootLayout() {
             <StatusBar style="auto" />
           </ThemeProvider>
         </BottomSheetModalProvider>
+        </SyncProvider>
       </SQLiteProvider>
     </GestureHandlerRootView>
   );

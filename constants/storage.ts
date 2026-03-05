@@ -6,6 +6,7 @@ export const STORAGE_KEYS = {
   AUTH_TOKEN: 'cemetery_auth_token',
   LAST_SYNC: 'cemetery_last_sync',
   IMAGE_MODE: 'cemetery_image_mode',
+  BACKGROUND_SYNC_ENABLED: 'cemetery_background_sync',
 };
 
 export async function getImageProcessingMode(): Promise<ImageProcessingMode> {
