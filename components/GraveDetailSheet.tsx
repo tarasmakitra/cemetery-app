@@ -15,7 +15,16 @@ import { NudgeControls } from './NudgeControls';
 import { ImageViewer } from './ImageViewer';
 import { AppColors } from '@/constants/theme';
 import { snapToGrid } from '@/utils/snap';
-import type { GraveWithRelations } from '@/db/types';
+import type { GraveWithRelations, UploadStatus } from '@/db/types';
+
+function imageBorderColor(status: UploadStatus): string {
+  switch (status) {
+    case 'store_only': return '#2196F3';
+    case 'pending':    return '#f44336';
+    case 'uploaded':   return '#4CAF50';
+    default:           return '#4CAF50';
+  }
+}
 
 interface GraveDetailSheetProps {
   bottomSheetRef: React.RefObject<BottomSheetModal | null>;
@@ -172,7 +181,7 @@ export function GraveDetailSheet({ bottomSheetRef, graveLocalId, onDismiss, onCo
             <View style={styles.photoGrid}>
               {grave.images.map((img, idx) => (
                 <TouchableOpacity key={img.local_id} onPress={() => setViewerIndex(idx)}>
-                  <Image source={{ uri: img.file_uri }} style={styles.photoThumb} />
+                  <Image source={{ uri: img.file_uri }} style={[styles.photoThumb, { borderWidth: 2, borderColor: imageBorderColor(img.upload_status) }]} />
                 </TouchableOpacity>
               ))}
             </View>

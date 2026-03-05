@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-const CURRENT_VERSION = 5;
+const CURRENT_VERSION = 6;
 
 export async function migrateDb(db: SQLiteDatabase) {
   await db.execAsync(`
@@ -26,10 +26,20 @@ export async function migrateDb(db: SQLiteDatabase) {
     `);
   }
 
-  if (version >= 4 && version < 5) {
+  if (version >= 3 && version < 5) {
     await db.execAsync(`
       ALTER TABLE local_grave_images ADD COLUMN full_uri TEXT NOT NULL DEFAULT '';
     `);
+  }
+
+  // Repair: databases that were at v3, migrated to v5 but missed the full_uri ALTER
+  if (version >= 5 && version < 6) {
+    const cols = await db.getAllAsync<{ name: string }>('PRAGMA table_info(local_grave_images)');
+    if (!cols.some(c => c.name === 'full_uri')) {
+      await db.execAsync(`
+        ALTER TABLE local_grave_images ADD COLUMN full_uri TEXT NOT NULL DEFAULT '';
+      `);
+    }
   }
 
   await db.execAsync(`

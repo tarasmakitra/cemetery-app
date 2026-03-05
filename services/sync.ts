@@ -308,8 +308,11 @@ export async function pullFromServer(
         );
       }
 
-      // Replace images
-      await db.runAsync('DELETE FROM local_grave_images WHERE grave_local_id = ?', [existing.local_id]);
+      // Replace images (keep store_only images that are local-only)
+      await db.runAsync(
+        `DELETE FROM local_grave_images WHERE grave_local_id = ? AND upload_status != 'store_only'`,
+        [existing.local_id]
+      );
       for (const img of serverGrave.images) {
         const imageUrl = buildImageUrl(serverUrl, img);
         const fullUrl = buildFullImageUrl(serverUrl, img);

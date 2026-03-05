@@ -10,7 +10,16 @@ import { generateUUID } from '@/utils/uuid';
 import { processCameraImage, saveGalleryImage } from '@/utils/images';
 import { getImageProcessingMode } from '@/constants/storage';
 import { ImageViewer } from './ImageViewer';
-import type { LocalGraveImage } from '@/db/types';
+import type { LocalGraveImage, UploadStatus } from '@/db/types';
+
+function imageBorderColor(status: UploadStatus): string {
+  switch (status) {
+    case 'store_only': return '#2196F3';  // blue
+    case 'pending':    return '#f44336';  // red
+    case 'uploaded':   return '#4CAF50';  // green
+    default:           return '#4CAF50';
+  }
+}
 
 interface GraveImagePickerProps {
   graveLocalId: string;
@@ -123,7 +132,7 @@ export function GraveImagePicker({ graveLocalId, graveUid, images, onImagesChang
 
       <View style={styles.grid}>
         {images.map((img, idx) => (
-          <View key={img.local_id} style={styles.imageWrapper}>
+          <View key={img.local_id} style={[styles.imageWrapper, { borderWidth: 2, borderColor: imageBorderColor(img.upload_status) }]}>
             <TouchableOpacity onPress={() => setViewerIndex(idx)}>
               <Image source={{ uri: img.file_uri }} style={styles.image} />
             </TouchableOpacity>
