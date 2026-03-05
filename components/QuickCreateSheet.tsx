@@ -319,6 +319,7 @@ export function QuickCreateSheet({
               onChangeText={(v) => updatePerson(index, 'name', v)}
               placeholder="Ім'я"
               placeholderTextColor={AppColors.placeholder}
+              autoCapitalize="words"
             />
             <Text style={styles.dateLabel}>Народження</Text>
             <View style={styles.dateRow}>

@@ -100,6 +100,7 @@ export function PersonFields({ control }: PersonFieldsProps) {
                 onChangeText={f.onChange}
                 placeholder="Ім'я"
                 placeholderTextColor={AppColors.placeholder}
+                autoCapitalize="words"
               />
             )}
           />
